@@ -1,103 +1,66 @@
 package com.example.mayank.internshiptask;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.net.Uri;
+import android.os.Build;
+import android.os.Environment;
+import android.os.StrictMode;
 import android.support.annotation.NonNull;
+import android.support.design.widget.NavigationView;
+import android.support.design.widget.TextInputLayout;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.widget.DrawerLayout;
+import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
+import android.view.Gravity;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
-import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
 import com.jjoe64.graphview.GraphView;
-import com.jjoe64.graphview.series.DataPoint;
-import com.jjoe64.graphview.series.LineGraphSeries;
 
-import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+import java.lang.reflect.Method;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "signup";
     private FirebaseAuth mAuth;
-    private GraphView mGraph;
-    FirebaseAuth.AuthStateListener mAuthListener;
     private FirebaseAuth firebaseAuth;
-    TextView first,second,third;
-    Button logout;
-// ...
+
+
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        mAuth = FirebaseAuth.getInstance();
-        mGraph = findViewById(R.id.graph);
-        first = findViewById(R.id.first);
-        second = findViewById(R.id.second);
-        third = findViewById(R.id.third);
-        logout = findViewById(R.id.logout);
-        firebaseAuth = FirebaseAuth.getInstance();
+
+
+        isStoragePermissionGranted();
+        copyFiles();
         checkuserlogin();
-        first.setText("amulcheesespread");
-        second.setText("amulcoolbadam");
-        third.setText("amulgoldmilk");
-
-        first.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(MainActivity.this,GraphActivity.class);
-                intent.putExtra("name","first");
-                startActivity(intent);
+        if(Build.VERSION.SDK_INT>=24){
+            try{
+                Method m = StrictMode.class.getMethod("disableDeathOnFileUriExposure");
+                m.invoke(null);
+            }catch(Exception e){
+                e.printStackTrace();
             }
-        });
+        }
 
-        second.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(MainActivity.this,GraphActivity.class);
-                intent.putExtra("name","second");
-                startActivity(intent);
-            }
-        });
-
-        third.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(MainActivity.this,GraphActivity.class);
-                intent.putExtra("name","third");
-                startActivity(intent);
-            }
-        });
-
-        logout.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-
-                mAuth.signOut();
-                startActivity(new Intent(MainActivity.this,LoginActivity.class));
-                finish();
-            }
-        });
-
-
-
-
+        mAuth = FirebaseAuth.getInstance();
 
 
 
@@ -113,43 +76,80 @@ public class MainActivity extends AppCompatActivity {
                     startActivity(intent);
                     finish();
                 }
+                else {
+                    startActivity(new Intent(MainActivity.this,DashboardActivity.class));
+                    finish();
+                }
 
 
 
 
     }
 
-    private List<String[]> readCVSFromAssetFolder(){
-        List<String[]> csvLine = new ArrayList<>();
-        String[] content = null;
-        try {
-                InputStream inputStream = getResources().openRawResource(R.raw.amulcheesespread_a);
-            BufferedReader br = new BufferedReader(new InputStreamReader(inputStream));
+    public  boolean isStoragePermissionGranted() {
+        if (Build.VERSION.SDK_INT >= 23) {
+            if (checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    == PackageManager.PERMISSION_GRANTED) {
 
-            String line = "";
-            while((line = br.readLine()) != null){
-                content = line.split(",");
-                csvLine.add(content);
+                return true;
+            } else {
+
+
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+                return false;
             }
-            csvLine.remove(0);
-            createLineGraph(csvLine);
-            br.close();
-        } catch (IOException e) {
+        }
+        else { //permission is automatically granted on sdk<23 upon installation
+
+            return true;
+        }
+    }
+
+    public  void  copyFiles() {
+
+        String path = Environment.getExternalStorageDirectory() + "/Task" ;
+        File dir = new File(path);
+        try{
+            if(dir.mkdir()) {
+                final int[] csvLIsts = new int[] { R.raw.amulcheesespread_a, R.raw.amulcoolbadam_a, R.raw.amulgoldmilk_a };
+                for (int i = 0; i < csvLIsts.length; i++) {
+                    try {
+                        String csvFile= "FileNo"+i +".csv";
+                        CopyRAWtoSDCard(csvLIsts[i], path+"/"+csvFile);
+                    } catch (IOException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
+                }
+            } else {
+                System.out.println("Error, while Copying songs to SD Card!");
+
+            }
+        }catch(Exception e){
             e.printStackTrace();
         }
-        return csvLine;
+
     }
 
-    private void createLineGraph(List<String[]> result){
-        DataPoint[] dataPoints = new DataPoint[result.size()];
-        for (int i = 0; i < result.size(); i++){
-            String [] rows = result.get(i);
-//            Log.d(TAG, "Output " + Integer.parseInt(rows[0]) + " " + Integer.parseInt(rows[1]));
-            dataPoints[i] = new DataPoint(Double.parseDouble(rows[0]), Double.parseDouble(rows[1]));
+
+
+    private void CopyRAWtoSDCard(int id, String path) throws IOException {
+        InputStream in = getResources().openRawResource(id);
+        FileOutputStream out = new FileOutputStream(path);
+        byte[] buff = new byte[1024];
+        int read = 0;
+        try {
+            while ((read = in.read(buff)) > 0) {
+                out.write(buff, 0, read);
+            }
+        } finally {
+            in.close();
+            out.close();
         }
-        LineGraphSeries<DataPoint> series = new LineGraphSeries<DataPoint>(dataPoints);
-        mGraph.addSeries(series);
     }
+
+
+
 
 
 

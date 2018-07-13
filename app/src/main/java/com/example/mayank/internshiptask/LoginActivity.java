@@ -16,11 +16,14 @@ import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
+import dmax.dialog.SpotsDialog;
+
 public class LoginActivity extends AppCompatActivity {
 
-    TextInputLayout TxtLoginUsername,TxtLoginPassword;
-    Button BtnLogin,BtnReg;
+    private TextInputLayout TxtLoginUsername,TxtLoginPassword;
+    private Button BtnLogin,BtnReg;
     private FirebaseAuth mAuth;
+    private SpotsDialog dialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,6 +32,7 @@ public class LoginActivity extends AppCompatActivity {
 
         mAuth = FirebaseAuth.getInstance();
 
+        dialog = (SpotsDialog) new SpotsDialog.Builder().setContext(this).build();
 
         TxtLoginUsername = findViewById(R.id.txt_login_username);
         TxtLoginPassword = findViewById(R.id.txt_login_password);
@@ -39,6 +43,7 @@ public class LoginActivity extends AppCompatActivity {
         BtnLogin.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+               dialog.show();
                 userLogin();
 
 
@@ -66,11 +71,13 @@ public class LoginActivity extends AppCompatActivity {
                     public void onComplete(@NonNull Task<AuthResult> task) {
                         if (task.isSuccessful()) {
                             // Sign in success, update UI with the signed-in user's information
-
-                           startActivity(new Intent(LoginActivity.this,MainActivity.class));
+                            dialog.dismiss();
+                            startActivity(new Intent(LoginActivity.this,MainActivity.class));
                            finish();
 
                         } else {
+                            dialog.dismiss();
+                            Toast.makeText(LoginActivity.this, "Authantication faild", Toast.LENGTH_SHORT).show();
                             // If sign in fails, display a message to the user.
 
                         }

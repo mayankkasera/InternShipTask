@@ -1,5 +1,7 @@
 package com.example.mayank.internshiptask;
 
+import android.app.AlertDialog;
+import android.content.Intent;
 import android.location.Address;
 import android.support.annotation.NonNull;
 import android.support.design.widget.TextInputLayout;
@@ -20,17 +22,21 @@ import com.google.firebase.database.FirebaseDatabase;
 
 import java.util.HashMap;
 
+import dmax.dialog.SpotsDialog;
+
 public class RagisterActivity extends AppCompatActivity {
 
     TextInputLayout Email,Password,Name,LastName,MobileNo,Address;
     Button Register;
     private FirebaseAuth mAuth;
+    private SpotsDialog dialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_ragister);
 
+        dialog = (SpotsDialog) new SpotsDialog.Builder().setContext(this).build();
         Email = findViewById(R.id.email);
         Password = findViewById(R.id.password);
         Name = findViewById(R.id.name);
@@ -52,6 +58,7 @@ public class RagisterActivity extends AppCompatActivity {
     }
 
     void Register (){
+        dialog.show();
         mAuth.createUserWithEmailAndPassword(Email.getEditText().getText().toString(), Password.getEditText().getText().toString())
                 .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
                     @Override
@@ -59,7 +66,7 @@ public class RagisterActivity extends AppCompatActivity {
                         if (task.isSuccessful()) {
                             // Sign in success, update UI with the signed-in user's information
 
-                            DatabaseReference myRef = FirebaseDatabase.getInstance().getReference().child("users").push();
+                            DatabaseReference myRef = FirebaseDatabase.getInstance().getReference().child("users").child(FirebaseAuth.getInstance().getUid());
                             HashMap<String,String> map = new HashMap<>();
                             map.put("email",Email.getEditText().getText().toString());
                             map.put("password",Password.getEditText().getText().toString());
@@ -70,7 +77,12 @@ public class RagisterActivity extends AppCompatActivity {
                             myRef.setValue(map).addOnCompleteListener(new OnCompleteListener<Void>() {
                                 @Override
                                 public void onComplete(@NonNull Task<Void> task) {
+                                    SharedpreferenceHelper sharedPreferenceHelper = SharedpreferenceHelper.getInstance(RagisterActivity.this);
+                                    sharedPreferenceHelper.userInfo(Name.getEditText().getText().toString(),Email.getEditText().getText().toString());
                                     Toast.makeText(RagisterActivity.this, "Successfully Register", Toast.LENGTH_SHORT).show();
+                                    dialog.dismiss();
+                                    startActivity(new Intent(RagisterActivity.this,MainActivity.class));
+                                    finish();
                                 }
                             });
 
@@ -79,6 +91,7 @@ public class RagisterActivity extends AppCompatActivity {
 
                         } else {
                             // If sign in fails, display a message to the user.
+                            dialog.dismiss();
                             Toast.makeText(RagisterActivity.this, "Authentication failed.",
                                     Toast.LENGTH_SHORT).show();
                         }
@@ -87,14 +100,6 @@ public class RagisterActivity extends AppCompatActivity {
                     }
                 });
 
-        DatabaseReference myRef = FirebaseDatabase.getInstance().getReference().child("users");
-        HashMap<String,String> map = new HashMap<>();
-        map.put("name","m");
-        myRef.setValue(map).addOnCompleteListener(new OnCompleteListener<Void>() {
-            @Override
-            public void onComplete(@NonNull Task<Void> task) {
-                Toast.makeText(RagisterActivity.this, "added", Toast.LENGTH_SHORT).show();
-            }
-        });
+
     }
 }
